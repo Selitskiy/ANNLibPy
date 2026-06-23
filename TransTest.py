@@ -9,6 +9,8 @@
 #./.cache/huggingface/hub/datasets--Skylion007--openwebtext/snapshots/b4325f019c648b1641a1784748667e8b74e5e064/plain_text
 
 
+import os
+
 import torch
 
 #test environment
@@ -82,16 +84,17 @@ def group_texts(examples):
     result["labels"] = result["input_ids"].copy()
     return result
 
+if os.path.exists(LM_CACHE):
+    lm_dataset = load_from_disk(LM_CACHE)
+else:
+    tokenized = raw_train.map(
+        tokenize_fn,
+        batched=True,
+        remove_columns=raw_train.column_names,
+    )
 
-tokenized = raw_train.map(
-    tokenize_fn,
-    batched=True,
-    remove_columns=raw_train.column_names,
-)
-
-#lm_dataset = load_from_disk(LM_CACHE)
-lm_dataset = tokenized.map(group_texts, batched=True)
-lm_dataset.save_to_disk(LM_CACHE)
+    lm_dataset = tokenized.map(group_texts, batched=True)
+    lm_dataset.save_to_disk(LM_CACHE)
 
 
 # tiny eval split carved out of train for reproducibility
@@ -136,7 +139,6 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    tokenizer=tokenizer,
     data_collator=data_collator,
     train_dataset=train_dataset,
     eval_dataset=eval_dataset,
