@@ -42,6 +42,78 @@ class cosPeTransformer(nn.Module):
         return Z
     
 
+class cosPeTransformerMH(nn.Module):
+    def __init__(self, channels, in_size, actK = None, actQ = None):
+        super(cosPeTransformerMH, self).__init__()
+
+        # square K and Q matrixes
+        self.in_size = in_size
+        self.channels = channels
+        self.out_size = in_size
+
+        self.actK = actK
+        self.actQ = actQ
+            
+        # Initialize weight coefficients - glorot
+        self.Wq = nn.Parameter(torch.empty(self.channels, self.in_size, self.out_size))
+        self.Wq0 = nn.Parameter(torch.zeros(self.channels, self.out_size))
+        nn.init.xavier_uniform_(self.Wq)
+
+        self.Wk = nn.Parameter(torch.empty(self.channels, self.in_size, self.out_size))
+        self.Wk0 = nn.Parameter(torch.zeros(self.channels, self.out_size))
+        nn.init.xavier_uniform_(self.Wk)
+
+
+    def forward(self, input):
+        eps=1e-12
+
+        # K, Q: [batch, channels, out_size]
+        Knb = torch.stack([
+            torch.matmul(input[:, c, :], self.Wk[c, :, :])  # matmul for each channel
+            for c in range(self.channels)
+        ], dim=1)
+        K = Knb + self.Wk0
+        #K = torch.einsum('bci,cio->bco', input, self.Wk) + self.Wk0
+        if self.actK is not None:
+            K = self.actK(K)
+
+        Qnb = torch.stack([
+            torch.matmul(input[:, c, :], self.Wq[c, :, :])  # matmul for each channel
+            for c in range(self.channels)
+        ], dim=1)
+        Q = Qnb + self.Wq0
+        #Q = torch.einsum('bci,cio->bco', input, self.Wq) + self.Wq0
+        if self.actQ is not None:
+            Q = self.actQ(Q)
+
+        Yu = torch.stack([
+            torch.matmul(Q[:, c, :], K.T[:, c, :])  # matmul for each channel
+            for c in range(self.channels)
+        ], dim=1)
+        #Yu = torch.einsum('bci,cio->bco', Q.T, K)
+        DK2 = torch.sum(K * K, dim=2, keepdim=True)
+        DQ2 = torch.sum(Q * Q, dim=2, keepdim=True)
+
+        DQK2 = torch.stack([
+            torch.matmul(DQ2[:, c, :], DK2.T[:, c, :])  # matmul for each channel
+            for c in range(self.channels)
+        ], dim=1)        
+        #DQK2 = DQ2 @ DK2.T
+
+        DQK = torch.sqrt(DQK2).clamp_min(eps)
+
+        Y = Yu / DQK
+
+        SM = torch.softmax(Y.T, dim = 0)
+
+        Z = torch.stack([
+            torch.matmul(SM[:, c, :], input[:, c, :])  # matmul for each channel
+            for c in range(self.channels)
+        ], dim=1)    
+
+        return Z
+    
+
 # Cosine Similarity Attention (between components/dimensions of input vectors - elements; attention matrix element-wise normalisation; linear Q and K transformations)
 class cosPcTransformer(nn.Module):
     def __init__(self, in_size, actK = None, actQ = None):

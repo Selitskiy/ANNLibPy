@@ -5,7 +5,7 @@ import numpy as np
 import math
 
 from LrReLULayers import LrReLU, LrLReLU, LrELU
-from cosSimAttention import cosPeTransformer, cosPcTransformer, cosPcTransformerMH
+from cosSimAttention import cosPeTransformer, cosPeTransformerMH, cosPcTransformer, cosPcTransformerMH
 from channelMult import ChannelReplicate, PerChannelLinear, channelsLinear
 
 # Define model
@@ -110,17 +110,14 @@ class OFTTCNN(nn.Module):
 
         self.cr = ChannelReplicate(self.channels)
         self.fc1 = channelsLinear(self.channels, self.inLen, self.hid1Len)
-        #self.fc1 = nn.Linear(self.prodLen, self.hid1Len)
 
         self.lrrelu1 = LrELU(self.hid1Len)
         #self.dropout1 = nn.Dropout(p=0.2)
         self.fc2 = channelsLinear(self.channels, self.hid1Len, self.hid2Len)
-        #self.fc2 = nn.Linear(self.hid1Len, self.hid2Len)
 
         self.lrrelu2 = LrELU(self.hid2Len)
         #self.dropout2 = nn.Dropout(p=0.2)
         self.fc3 = channelsLinear(self.channels, self.hid2Len, self.outLen)
-        #self.fc3 = nn.Linear(self.hid2Len, self.outLen)
 
         self.fl = nn.Flatten(start_dim=1)
 
@@ -161,35 +158,29 @@ class OFTTCNN2(nn.Module):
         self.hid1Len = self.bottleLen
         self.hid2Len = (self.bottleLen*2+1)
 
-        #self.pet0 = cosPeTransformer(self.inLen)
-        #self.fc0 = nn.Linear(self.inLen, self.prodLen)
-        
 
         self.cr = ChannelReplicate(self.channels)
+        #self.pet0 = cosPeTransformerMH(self.channels, self.inLen, _actK, _actQ)
+
         self.pct0 = cosPcTransformerMH(self.channels, self.inLen, _actK, _actQ)
 
         self.fc1 = channelsLinear(self.channels, self.inLen, self.hid1Len)
-        #self.fc1 = nn.Linear(self.prodLen, self.hid1Len)
 
         self.lrrelu1 = LrELU(self.hid1Len)
         #self.dropout1 = nn.Dropout(p=0.2)
         self.fc2 = channelsLinear(self.channels, self.hid1Len, self.hid2Len)
-        #self.fc2 = nn.Linear(self.hid1Len, self.hid2Len)
 
         self.lrrelu2 = LrELU(self.hid2Len)
         #self.dropout2 = nn.Dropout(p=0.2)
         self.fc3 = channelsLinear(self.channels, self.hid2Len, self.outLen)
-        #self.fc3 = nn.Linear(self.hid2Len, self.outLen)
 
         self.fl = nn.Flatten(start_dim=1)
 
     def forward(self, x):
 
-        #x = self.pet0(x)
-        #x = self.fc0(x)
-        
-
         x = self.cr(x)
+        #x = self.pet0(x)
+
         x = self.pct0(x)
 
         x = self.fc1(x)

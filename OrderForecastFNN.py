@@ -64,30 +64,20 @@ class OFCANN(nn.Module):
         self.hid1Len = _inLen
         self.hid2Len = (_inLen*2+1)
 
-        #self.fc1 = nn.Linear(self.inLen, self.hid1Len*self.channels)
-        #self.ufl = nn.Unflatten(1, (self.channels, self.hid1Len))
-
         self.cr = ChannelReplicate(self.channels)
-        #self.fc1 = PerChannelLinear(self.inLen, self.hid1Len)
-        self.fc1 = channelsLinear(self.channels, self.inLen, self.hid1Len)
 
+        self.fc1 = channelsLinear(self.channels, self.inLen, self.hid1Len)
         self.lrrelu1 = LrELU(self.hid1Len)
         self.dropout1 = nn.Dropout(p=0.2)
 
-        #self.fc2 = PerChannelLinear(self.hid1Len, self.hid2Len)
         self.fc2 = channelsLinear(self.channels, self.hid1Len, self.hid2Len)
         self.lrrelu2 = LrELU(self.hid2Len)
         self.dropout2 = nn.Dropout(p=0.2)
         
-        #self.fc3 = PerChannelLinear(self.hid2Len, self.outLen)
         self.fc3 = channelsLinear(self.channels, self.hid2Len, self.outLen)
-
         self.fl = nn.Flatten(start_dim=1)
 
     def forward(self, x):
-
-        #x = self.fc1(x)
-        #x = self.ufl(x)
 
         x = self.cr(x)
         x = self.fc1(x)
