@@ -1,4 +1,5 @@
 import ctypes
+import numpy as np
 
 
 lib = ctypes.CDLL("./libmath.so")
@@ -61,6 +62,21 @@ lib.create_sequence_heap.restype = ctypes.POINTER(ctypes.c_int)
 lib.free_memory.argtypes = [ctypes.c_void_p]
 lib.free_memory.restype = None
 
+DoubleVector = np.ctypeslib.ndpointer(dtype=np.float64, ndim=1, flags="C_CONTIGUOUS")
+DoubleMatrix = np.ctypeslib.ndpointer(dtype=np.float64, ndim=2, flags="C_CONTIGUOUS")
+
+lib.sum_double_array.argtypes = [DoubleVector, ctypes.c_int]
+lib.sum_double_array.restype = ctypes.c_double
+
+lib.scale_double_array.argtypes = [DoubleVector, ctypes.c_int, ctypes.c_double]
+lib.scale_double_array.restype = None
+
+lib.sum_matrix_flat.argtypes = [DoubleMatrix, ctypes.c_int, ctypes.c_int]
+lib.sum_matrix_flat.restype = ctypes.c_double
+
+lib.add_to_sensor_values.argtypes = [ctypes.POINTER(SensorData), ctypes.c_int, ctypes.c_double]
+lib.add_to_sensor_values.restype = None
+
 
 print("square:", lib.square(5.0))
 
@@ -115,3 +131,23 @@ if heap_pointer:
     heap_values = [heap_pointer[i] for i in range(heap_length)]
     print("malloc/free array:", heap_values)
     lib.free_memory(heap_pointer)
+
+np_ints = np.array([3, 6, 9, 12], dtype=np.int32)
+print("numpy int array sum:", lib.sum_int_array(np_ints.ctypes.data_as(ctypes.POINTER(ctypes.c_int)), np_ints.size))
+
+np_doubles = np.array([1.5, 2.5, 3.5], dtype=np.float64)
+print("numpy double array sum:", lib.sum_double_array(np_doubles, np_doubles.size))
+
+lib.scale_double_array(np_doubles, np_doubles.size, 10.0)
+print("numpy array changed in C:", np_doubles)
+
+np_matrix = np.array([[1.0, 2.0, 3.0], [7.0, 8.0, 9.0]], dtype=np.float64)
+print("numpy 2D array sum:", lib.sum_matrix_flat(np_matrix, np_matrix.shape[0], np_matrix.shape[1]))
+
+sensor_dtype = np.dtype([("id", np.int32), ("value", np.float64)], align=True)
+np_sensors = np.array([(10, 1.25), (11, 2.5), (12, 3.75)], dtype=sensor_dtype)
+sensor_ptr = np_sensors.ctypes.data_as(ctypes.POINTER(SensorData))
+print("numpy structured avg:", lib.average_sensor_values(sensor_ptr, np_sensors.size))
+
+lib.add_to_sensor_values(sensor_ptr, np_sensors.size, 5.0)
+print("numpy structured changed in C:", np_sensors)

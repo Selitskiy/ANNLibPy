@@ -138,3 +138,41 @@ void free_memory(void *ptr) {
         free(ptr);
     }
 }
+
+double sum_double_array(const double *values, int length) {
+    double total = 0.0;
+    int i;
+
+    for (i = 0; i < length; i++) {
+        total += values[i];
+    }
+
+    return total;
+}
+
+void scale_double_array(double *values, int length, double factor) {
+    int i;
+
+    for (i = 0; i < length; i++) {
+        values[i] *= factor;
+    }
+}
+
+double sum_matrix_flat(const double *matrix, int rows, int cols) {
+    double total = 0.0;
+    int i;
+
+    for (i = 0; i < rows * cols; i++) {
+        total += matrix[i];
+    }
+
+    return total;
+}
+
+void add_to_sensor_values(SensorData *sensors, int length, double delta) {
+    int i;
+
+    for (i = 0; i < length; i++) {
+        sensors[i].value += delta;
+    }
+}
