@@ -24,6 +24,7 @@ print("Current GPU:", torch.cuda.current_device())
 print("Name:", torch.cuda.get_device_name(0))
 
 import transformers
+print(transformers.__version__)
 print(transformers.__file__)
 
 
@@ -68,7 +69,7 @@ dataset = load_dataset(DATASET_NAME)
 raw_train = dataset["train"]
 
 
-BLOCK_SIZE = 1024
+BLOCK_SIZE = 512
 
 def tokenize_fn(batch):
     return tokenizer(batch["text"])
@@ -130,10 +131,12 @@ training_args = TrainingArguments(
     logging_steps=20,
     eval_steps=100,
     save_steps=100,
-    eval_strategy="steps",
+    #eval_strategy="steps",
+    evaluation_strategy="steps",
     save_strategy="steps",
     report_to="none",
-    #fp16=True,
+    fp16=False,
+    bf16=False,
 )
 
 trainer = Trainer(
