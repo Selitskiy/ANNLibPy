@@ -10,6 +10,7 @@
 
 
 import os
+from pathlib import Path
 
 import torch
 
@@ -20,8 +21,9 @@ print(x)
 cudaA = torch.cuda.is_available()
 print(f"Cuda available {cudaA}")
 print("GPU count:", torch.cuda.device_count())
-print("Current GPU:", torch.cuda.current_device())
-print("Name:", torch.cuda.get_device_name(0))
+if cudaA:
+    print("Current GPU:", torch.cuda.current_device())
+    print("Name:", torch.cuda.get_device_name(0))
 
 import transformers
 print(transformers.__version__)
@@ -37,12 +39,25 @@ from transformers import TrainerCallback
 OUTPUT_DIR = Path("./lm_output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# If a checkpoint exists in OUTPUT_DIR, load from it; otherwise load base `gpt2`
+# If a checkpoint exists in OUTPUT_DIR, load model from it; otherwise load base `gpt2`
 last_ckpt = get_last_checkpoint(str(OUTPUT_DIR))
+
+# Tokenizer files are not always saved inside Trainer checkpoint directories.
+# Prefer the root OUTPUT_DIR if it contains saved tokenizer files, else fall back to gpt2.
+
+def has_tokenizer_files(path: str) -> bool:
+    required_files = ["tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt"]
+    return any(Path(path).joinpath(f).exists() for f in required_files)
+
 if last_ckpt:
-    print(f"Found checkpoint, loading model and tokenizer from {last_ckpt}")
+    print(f"Found checkpoint, loading model from {last_ckpt}")
     model = GPT2LMHeadModel.from_pretrained(last_ckpt)
-    tokenizer = GPT2TokenizerFast.from_pretrained(last_ckpt)
+    tokenizer_source = str(OUTPUT_DIR) if has_tokenizer_files(str(OUTPUT_DIR)) else last_ckpt
+    if not has_tokenizer_files(tokenizer_source):
+        print(f"Tokenizer not found in checkpoint; loading tokenizer from gpt2")
+        tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    else:
+        tokenizer = GPT2TokenizerFast.from_pretrained(tokenizer_source)
 else:
     model = GPT2LMHeadModel.from_pretrained("gpt2")
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
