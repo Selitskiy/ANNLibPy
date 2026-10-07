@@ -160,17 +160,17 @@ class OFTTCNN2(nn.Module):
 
 
         self.cr = ChannelReplicate(self.channels)
-        #self.pet0 = cosPeTransformerMH(self.channels, self.inLen, _actK, _actQ)
+        self.pet0 = cosPeTransformerMH(self.channels, self.inLen, _actK, _actQ)
 
         self.pct0 = cosPcTransformerMH(self.channels, self.inLen, _actK, _actQ)
 
         self.fc1 = channelsLinear(self.channels, self.inLen, self.hid1Len)
 
-        self.lrrelu1 = LrELU(self.hid1Len)
+        self.lrrelu1 = LrReLU(self.hid1Len) #LrELU(self.hid1Len)
         #self.dropout1 = nn.Dropout(p=0.2)
         self.fc2 = channelsLinear(self.channels, self.hid1Len, self.hid2Len)
 
-        self.lrrelu2 = LrELU(self.hid2Len)
+        self.lrrelu2 = LrReLU(self.hid2Len) #LrELU(self.hid2Len)
         #self.dropout2 = nn.Dropout(p=0.2)
         self.fc3 = channelsLinear(self.channels, self.hid2Len, self.outLen)
 

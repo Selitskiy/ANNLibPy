@@ -87,7 +87,7 @@ class cosPeTransformerMH(nn.Module):
             Q = self.actQ(Q)
 
         Yu = torch.stack([
-            torch.matmul(Q[:, c, :], K.T[:, c, :])  # matmul for each channel
+            torch.matmul(Q[:, c, :], K[:, c, :].T)  # matmul for each channel
             for c in range(self.channels)
         ], dim=1)
         #Yu = torch.einsum('bci,cio->bco', Q.T, K)
@@ -95,7 +95,7 @@ class cosPeTransformerMH(nn.Module):
         DQ2 = torch.sum(Q * Q, dim=2, keepdim=True)
 
         DQK2 = torch.stack([
-            torch.matmul(DQ2[:, c, :], DK2.T[:, c, :])  # matmul for each channel
+            torch.matmul(DQ2[:, c, :], DK2[:, c, :].T)  # matmul for each channel
             for c in range(self.channels)
         ], dim=1)        
         #DQK2 = DQ2 @ DK2.T
@@ -104,7 +104,7 @@ class cosPeTransformerMH(nn.Module):
 
         Y = Yu / DQK
 
-        SM = torch.softmax(Y.T, dim = 0)
+        SM = torch.softmax(Y.permute(2, 1, 0), dim = 0)
 
         Z = torch.stack([
             torch.matmul(SM[:, c, :], input[:, c, :])  # matmul for each channel
@@ -207,15 +207,15 @@ class cosPcTransformerMH(nn.Module):
             Q = self.actQ(Q)
 
         Yu = torch.stack([
-            torch.matmul(Q.T[:, c, :], K[:, c, :])  # matmul for each channel
+            torch.matmul(Q[:, c, :].T, K[:, c, :])  # matmul for each channel
             for c in range(self.channels)
         ], dim=1)
         #Yu = torch.einsum('bci,cio->bco', Q.T, K)
-        DK2 = torch.sum(K.T * K.T, dim=2, keepdim=True)
-        DQ2 = torch.sum(Q.T * Q.T, dim=2, keepdim=True)
+        DK2 = torch.sum(K.permute(2, 1, 0) ** 2, dim=2, keepdim=True)
+        DQ2 = torch.sum(Q.permute(2, 1, 0) ** 2, dim=2, keepdim=True)
 
         DQK2 = torch.stack([
-            torch.matmul(DQ2[:, c, :], DK2.T[:, c, :])  # matmul for each channel
+            torch.matmul(DQ2[:, c, :], DK2[:, c, :].T)  # matmul for each channel
             for c in range(self.channels)
         ], dim=1)        
         #DQK2 = DQ2 @ DK2.T
